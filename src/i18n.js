@@ -1136,6 +1136,26 @@ const i18nData = {
     "tr": "Log dosyası yok",
     "uk": "Немає файлів логів"
   },
+  "ui.footer.starRequest": {
+    "zh": "在此感谢各位GitHub大佬赏赐一个STAR",
+    "en": "Please give us a STAR on GitHub if you like it",
+    "zh-TW": "在此感謝各位GitHub大佬賞賜一個STAR",
+    "ko": "마음에 드시면 GitHub에서 STAR를 눌러주세요",
+    "ja": "よろしければGitHubでSTARをお願いします",
+    "de": "Bitte geben Sie uns einen STAR auf GitHub",
+    "es": "Por favor, danos una STAR en GitHub",
+    "fr": "Merci de nous donner une STAR sur GitHub",
+    "it": "Per favore, dacci una STAR su GitHub",
+    "da": "Giv os venligst en STAR på GitHub",
+    "pl": "Prosimy o STAR na GitHubie",
+    "ru": "Пожалуйста, поставьте нам STAR на GitHub",
+    "ar": "يرجى منحنا نجمة STAR على GitHub",
+    "no": "Vennligst gi oss en STAR på GitHub",
+    "pt-BR": "Por favor, nos dê uma STAR no GitHub",
+    "th": "กรุณาให้ STAR บน GitHub ด้วยนะครับ",
+    "tr": "Lütfen GitHub'da bize bir STAR verin",
+    "uk": "Будь ласка, поставте нам STAR на GitHub"
+  },
   "ui.footer.contact": {
     "zh": "如需帮助，请联系 @水映天辙(钉钉)",
     "en": "Need help? Contact @水映天辙 (DingTalk)",

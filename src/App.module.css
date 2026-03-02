@@ -161,6 +161,11 @@
   color: #555;
 }
 
+.footerText {
+  color: #444;
+  margin-right: 2px;
+}
+
 .footerLink {
   display: inline-flex;
   align-items: center;
@@ -197,11 +202,6 @@
 .guideContent {
   max-width: 560px;
   padding: 40px;
-}
-
-.guideIcon {
-  margin-bottom: 20px;
-  opacity: 0.6;
 }
 
 .guideTitle {

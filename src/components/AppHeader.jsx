@@ -678,7 +678,11 @@ class AppHeader extends React.Component {
             </Tag>
           </Popover>
           {(() => {
-            const inflightReqs = isLocalLog ? [] : (requests || []).filter(r => !r.response);
+            const INFLIGHT_TIMEOUT = 5 * 60 * 1000; // 5 分钟超时，视为失败请求
+            const now = Date.now();
+            const inflightReqs = isLocalLog ? [] : (requests || []).filter(r =>
+              !r.response && (now - new Date(r.timestamp).getTime()) < INFLIGHT_TIMEOUT
+            );
             const hasInflight = inflightReqs.length > 0;
             const liveDot = !isLocalLog ? (
               hasInflight ? (

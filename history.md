@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.3 (2026-03-02)
+
+- Feat: mobile CLI mode — full-screen terminal with status bar showing live monitoring project name
+- Feat: mobile virtual keybar — ↑ ↓ ← → Enter Tab Esc Ctrl+C buttons for terminal interaction
+- Fix: inflight request timeout — requests without response older than 5 minutes no longer shown as in-flight
+- UI: remove guide icon from empty state in raw view mode
+- UI: add star request text in footer with i18n support
+
 ## 1.4.2 (2026-03-02)
 
 - Fix: prevent redundant cc-viewer server startup when Claude Code is launched via `ccv --c` or `ccv run` proxy mode (CCV_PROXY_MODE env guard)

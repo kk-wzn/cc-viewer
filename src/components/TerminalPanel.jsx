@@ -5,6 +5,20 @@ import '@xterm/xterm/css/xterm.css';
 import { t } from '../i18n';
 import styles from './TerminalPanel.module.css';
 
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
+// 虚拟按键定义：label 显示文字，seq 为发送到终端的转义序列
+const VIRTUAL_KEYS = [
+  { label: '↑', seq: '\x1b[A' },
+  { label: '↓', seq: '\x1b[B' },
+  { label: '←', seq: '\x1b[D' },
+  { label: '→', seq: '\x1b[C' },
+  { label: 'Enter', seq: '\r' },
+  { label: 'Tab', seq: '\t' },
+  { label: 'Esc', seq: '\x1b' },
+  { label: 'Ctrl+C', seq: '\x03' },
+];
+
 class TerminalPanel extends React.Component {
   constructor(props) {
     super(props);
@@ -37,7 +51,7 @@ class TerminalPanel extends React.Component {
   initTerminal() {
     this.terminal = new Terminal({
       cursorBlink: true,
-      fontSize: 13,
+      fontSize: isMobile ? 11 : 13,
       fontFamily: 'Menlo, Monaco, "Courier New", monospace',
       theme: {
         background: '#0a0a0a',
@@ -121,10 +135,31 @@ class TerminalPanel extends React.Component {
     }
   }
 
+  handleVirtualKey = (seq) => {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type: 'input', data: seq }));
+    }
+    this.terminal?.focus();
+  };
+
   render() {
     return (
       <div className={styles.terminalPanel}>
         <div ref={this.containerRef} className={styles.terminalContainer} />
+        {isMobile && (
+          <div className={styles.virtualKeybar}>
+            {VIRTUAL_KEYS.map(k => (
+              <button
+                key={k.label}
+                className={styles.virtualKey}
+                onTouchStart={(e) => { e.preventDefault(); this.handleVirtualKey(k.seq); }}
+                onClick={() => this.handleVirtualKey(k.seq)}
+              >
+                {k.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     );
   }

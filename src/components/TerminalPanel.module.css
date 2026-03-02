@@ -10,3 +10,40 @@
   overflow: hidden;
   padding: 4px 8px;
 }
+
+.virtualKeybar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #111;
+  border-top: 1px solid #222;
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-overflow-scrolling: touch;
+}
+
+.virtualKey {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  background: #1a1a1a;
+  color: #ccc;
+  font-size: 15px;
+  font-family: Menlo, Monaco, monospace;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.virtualKey:active {
+  background: #333;
+  border-color: #555;
+  color: #fff;
+}
