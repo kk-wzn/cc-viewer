@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.4.0 (2026-03-02)
+
+- Feat: CLI mode — embedded PTY terminal panel with split-pane layout, WebSocket-based input/output
+- Feat: PTY permission prompt detection — terminal prompts rendered as interactive chat bubbles with clickable options
+- Feat: PTY prompt history — answered prompts stay in chat (greyed out with selected option highlighted), dismissed prompts auto-fade
+- Feat: last response suggestion ghost text — assistant's final response pre-fills chat input as grey placeholder; Tab to accept, type to dismiss
+- Feat: terminal-visible suggestion chip — when terminal panel is open, suggestion appears as clickable bar that sends to PTY
+- Feat: sticky-to-bottom auto-restore — scrolling within 5px of bottom automatically re-enables sticky mode
+- Feat: hide terminal button in raw (network) view mode
+- Fix: raw-to-chat scroll positioning — switching from raw mode with a selected request now correctly scrolls to the corresponding chat message
+- i18n: added `ui.chatInput.hintTab` entry for all supported languages
+
 ## 1.3.8 (2026-03-01)
 
 - Feat: inflight request detection — write request entry before fetch, deduplicate by timestamp+url on read; live spinner and popover for in-flight requests
