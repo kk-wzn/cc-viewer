@@ -296,11 +296,13 @@ class TerminalPanel extends React.Component {
 
   sendResize() {
     if (this.ws && this.ws.readyState === WebSocket.OPEN && this.terminal) {
-      this.ws.send(JSON.stringify({
+      const msg = {
         type: 'resize',
         cols: this.terminal.cols,
         rows: this.terminal.rows,
-      }));
+      };
+      if (isMobile) msg.mobile = true;
+      this.ws.send(JSON.stringify(msg));
     }
   }
 
@@ -322,13 +324,13 @@ class TerminalPanel extends React.Component {
   }
 
   /**
-   * 移动端固定尺寸计算：基于屏幕宽高一次性确定 cols/rows，
-   * 避免 fitAddon.fit() 因容器尺寸波动导致的反复重排。
+   * 移动端固定 60 列：通过调整 fontSize 使 60 列恰好撑满屏幕宽度，
+   * 行数根据缩放后的行高和可用高度动态计算。
    */
   _mobileFixedResize() {
     if (!this.terminal) return;
 
-    // 从 xterm 渲染器获取实际字符尺寸
+    // 从 xterm 渲染器获取当前字符尺寸
     const cellDims = this.terminal._core?._renderService?.dimensions?.css?.cell;
     if (!cellDims || !cellDims.width || !cellDims.height) {
       // 渲染器尚未就绪，延迟重试
@@ -336,30 +338,32 @@ class TerminalPanel extends React.Component {
       return;
     }
 
-    const charWidth = cellDims.width;
-    const lineHeight = cellDims.height;
-
-    // 容器内边距 padding: 4px 8px
-    const padX = 16; // 8px * 2
+    const MOBILE_COLS = 60;
+    const padX = 16; // 8px * 2 容器内边距
     const padY = 8;  // 4px * 2
-
-    const screenWidth = window.innerWidth;
-    const screenHeight = window.innerHeight;
-
-    // 顶部状态栏 ~40px，虚拟按键栏 ~52px (44px + padding)
     const topBarHeight = 40;
     const keybarHeight = 52;
-    const availableHeight = screenHeight - topBarHeight - keybarHeight;
 
-    const cols = Math.floor((screenWidth - padX) / charWidth);
-    const rows = Math.floor((availableHeight - padY) / lineHeight);
+    const availableWidth = window.innerWidth - padX;
+    const availableHeight = window.innerHeight - topBarHeight - keybarHeight - padY;
 
-    // 确保合理范围
-    const safeCols = Math.max(20, Math.min(cols, 200));
-    const safeRows = Math.max(5, Math.min(rows, 100));
+    // 根据当前 fontSize 和 charWidth 的比例，计算让 60 列恰好填满宽度所需的 fontSize
+    const currentFontSize = this.terminal.options.fontSize;
+    const currentCharWidth = cellDims.width;
+    const targetFontSize = Math.floor(currentFontSize * availableWidth / (MOBILE_COLS * currentCharWidth) * 10) / 10;
 
-    this.terminal.resize(safeCols, safeRows);
-    this.sendResize();
+    // 更新字号，xterm 会重新渲染
+    this.terminal.options.fontSize = targetFontSize;
+
+    // 等渲染器更新后再计算行数
+    requestAnimationFrame(() => {
+      const newCellDims = this.terminal._core?._renderService?.dimensions?.css?.cell;
+      const lineHeight = newCellDims?.height || cellDims.height;
+      const rows = Math.max(5, Math.min(Math.floor(availableHeight / lineHeight), 100));
+
+      this.terminal.resize(MOBILE_COLS, rows);
+      this.sendResize();
+    });
   }
 
   /**

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.15 (2026-03-04)
+
+- Fix: mobile terminal always uses 60-col fixed width with auto-scaled font size to fit screen
+- Fix: mobile-priority PTY sizing — when mobile is connected, PTY locks to mobile dimensions; PC displays narrower output but renders correctly
+- Fix: CLI mode QR code not showing due to race condition — `CCV_CLI_MODE` env now set before `import('./proxy.js')` to prevent stale module-level const
+
 ## 1.4.14 (2026-03-04)
 
 - Fix: shared PTY multi-client rendering corruption — only the active client (last to send input) controls PTY size, preventing PC/mobile resize conflicts

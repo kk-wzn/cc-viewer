@@ -999,10 +999,23 @@ async function setupTerminalWebSocket(httpServer) {
     const wss = new WebSocketServer({ noServer: true });
 
     // 多客户端共享 PTY 的尺寸冲突解决：
-    // 只有"活跃客户端"（最近发送 input 的）的尺寸才会应用到 PTY，
-    // 其他客户端的 resize 仅存储不生效，避免 PC/移动端尺寸互相覆盖导致渲染混乱。
-    let activeWs = null;        // 当前活跃的 WebSocket 连接
-    const clientSizes = new Map(); // ws → { cols, rows }
+    // 移动端优先——只要有移动端在线，PTY 始终使用移动端尺寸，
+    // PC 端的 resize 仅存储不生效，避免宽屏尺寸导致移动端乱码。
+    // PC 端显示窄输出但完全可读，移动端永远不会乱码。
+    let activeWs = null;              // 当前活跃的 WebSocket 连接
+    const clientSizes = new Map();    // ws → { cols, rows }
+    const mobileClients = new Set();  // 移动端连接集合
+
+    // 找到一个在线的移动端并返回其尺寸
+    const getMobileSize = () => {
+      for (const mws of mobileClients) {
+        if (mws.readyState === 1) {
+          const size = clientSizes.get(mws);
+          if (size) return size;
+        }
+      }
+      return null;
+    };
 
     httpServer.on('upgrade', (req, socket, head) => {
       const pathname = new URL(req.url, `http://${req.headers.host}`).pathname;
@@ -1048,18 +1061,27 @@ async function setupTerminalWebSocket(httpServer) {
             // 发送 input 的客户端成为活跃客户端
             if (activeWs !== ws) {
               activeWs = ws;
-              // 切换活跃客户端时，将 PTY 调整为该客户端的尺寸
-              const size = clientSizes.get(ws);
-              if (size) {
-                resizePty(size.cols, size.rows);
+              // 切换活跃客户端时，如果有移动端在线则保持移动端尺寸，
+              // 否则切换到新活跃客户端的尺寸
+              const mSize = getMobileSize();
+              if (mSize) {
+                resizePty(mSize.cols, mSize.rows);
+              } else {
+                const size = clientSizes.get(ws);
+                if (size) {
+                  resizePty(size.cols, size.rows);
+                }
               }
             }
             writeToPty(msg.data);
           } else if (msg.type === 'resize') {
             // 存储该客户端的尺寸
             clientSizes.set(ws, { cols: msg.cols, rows: msg.rows });
-            // 仅活跃客户端（或首个客户端）的 resize 直接生效
-            if (activeWs === ws || activeWs === null) {
+            if (msg.mobile) mobileClients.add(ws);
+            // 移动端 resize 始终生效；PC 端仅在无移动端时生效
+            if (msg.mobile) {
+              resizePty(msg.cols, msg.rows);
+            } else if (mobileClients.size === 0 && (activeWs === ws || activeWs === null)) {
               activeWs = ws;
               resizePty(msg.cols, msg.rows);
             }
@@ -1071,14 +1093,21 @@ async function setupTerminalWebSocket(httpServer) {
         removeDataListener();
         removeExitListener();
         clientSizes.delete(ws);
+        mobileClients.delete(ws);
         if (activeWs === ws) {
           // 活跃客户端断开，将控制权交给剩余的某个客户端
           activeWs = null;
-          for (const [remainWs, size] of clientSizes) {
-            if (remainWs.readyState === 1) {
-              activeWs = remainWs;
-              resizePty(size.cols, size.rows);
-              break;
+          // 优先使用移动端尺寸，无移动端则用剩余客户端尺寸
+          const mSize = getMobileSize();
+          if (mSize) {
+            resizePty(mSize.cols, mSize.rows);
+          } else {
+            for (const [remainWs, size] of clientSizes) {
+              if (remainWs.readyState === 1) {
+                activeWs = remainWs;
+                resizePty(size.cols, size.rows);
+                break;
+              }
             }
           }
         }

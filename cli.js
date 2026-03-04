@@ -241,12 +241,16 @@ async function runCliMode(extraClaudeArgs = []) {
 
   console.log(t('cli.cMode.starting'));
 
+  // 2. 设置 CLI 模式标记（必须在 import proxy.js 之前，
+  //    因为 proxy.js → interceptor.js 可能触发 server.js 加载，
+  //    server.js 的 isCliMode 在模块顶层求值且只执行一次）
+  process.env.CCV_CLI_MODE = '1';
+
   // 1. 启动代理
   const { startProxy } = await import('./proxy.js');
   const proxyPort = await startProxy();
 
-  // 2. 设置 CLI 模式标记，启动 HTTP 服务器
-  process.env.CCV_CLI_MODE = '1';
+  // 3. 启动 HTTP 服务器
   const serverMod = await import('./server.js');
 
   // 等待服务器启动完成
