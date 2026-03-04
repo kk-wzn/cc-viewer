@@ -182,9 +182,9 @@ const i18nData = {
     "uk": "\nДля видалення виконайте: ccv --uninstall"
   },
   "cli.help": {
-    "zh": "CC Viewer CLI\n\n用法:\n  ccv [options]\n  ccv run -- <command> [args...]\n\n选项:\n  -h, --help        显示帮助\n  -v, --version     显示版本\n  --uninstall       移除 CC Viewer 集成\n\n说明:\n  直接运行 ccv 将安装/修复 Claude Code 的集成 Hook。",
-    "en": "CC Viewer CLI\n\nUsage:\n  ccv [options]\n  ccv run -- <command> [args...]\n\nOptions:\n  -h, --help        Show help\n  -v, --version     Show version\n  --uninstall       Remove CC Viewer integration\n\nNotes:\n  Running ccv without arguments installs/repairs the Claude Code hook.",
-    "zh-TW": "CC Viewer CLI\n\n用法:\n  ccv [options]\n  ccv run -- <command> [args...]\n\n選項:\n  -h, --help        顯示說明\n  -v, --version     顯示版本\n  --uninstall       移除 CC Viewer 整合\n\n說明:\n  直接執行 ccv 會安裝/修復 Claude Code 的整合 Hook。"
+    "zh": "CC Viewer CLI\n\n用法:\n  ccv [options]\n  ccv run -- <command> [args...]\n\n选项:\n  -h, --help        显示帮助\n  -v, --version     显示版本\n  -c, --c           CLI 模式：在 PTY 中运行 Claude，自动打开浏览器\n  -d, --d           Dangerous 模式：CLI 模式 + --dangerously-skip-permissions\n  --uninstall       移除 CC Viewer 集成\n\n说明:\n  直接运行 ccv 将安装/修复 Claude Code 的集成 Hook。",
+    "en": "CC Viewer CLI\n\nUsage:\n  ccv [options]\n  ccv run -- <command> [args...]\n\nOptions:\n  -h, --help        Show help\n  -v, --version     Show version\n  -c, --c           CLI mode: run Claude in PTY with auto browser\n  -d, --d           Dangerous mode: CLI mode + --dangerously-skip-permissions\n  --uninstall       Remove CC Viewer integration\n\nNotes:\n  Running ccv without arguments installs/repairs the Claude Code hook.",
+    "zh-TW": "CC Viewer CLI\n\n用法:\n  ccv [options]\n  ccv run -- <command> [args...]\n\n選項:\n  -h, --help        顯示說明\n  -v, --version     顯示版本\n  -c, --c           CLI 模式：在 PTY 中執行 Claude，自動開啟瀏覽器\n  -d, --d           Dangerous 模式：CLI 模式 + --dangerously-skip-permissions\n  --uninstall       移除 CC Viewer 整合\n\n說明:\n  直接執行 ccv 會安裝/修復 Claude Code 的整合 Hook。"
   },
   "cli.cMode.notFound": {
     "zh": "错误: 未找到 claude 命令，请确认已安装 Claude Code",
