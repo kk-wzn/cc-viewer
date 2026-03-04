@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { createConnection } from 'node:net';
 import { randomBytes } from 'node:crypto';
-import { readFileSync, writeFileSync, existsSync, watchFile, unwatchFile, statSync, readdirSync, renameSync, unlinkSync, openSync, readSync, closeSync, realpathSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, watchFile, unwatchFile, statSync, readdirSync, renameSync, unlinkSync, openSync, readSync, closeSync, realpathSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, extname } from 'node:path';
 import { homedir, userInfo, platform, networkInterfaces } from 'node:os';
@@ -11,6 +11,7 @@ import { LOG_FILE, _initPromise, _resumeState, resolveResumeChoice, _projectName
 import { LOG_DIR } from './findcc.js';
 import { t, detectLanguage } from './i18n.js';
 import { checkAndUpdate } from './updater.js';
+import { loadPlugins, runWaterfallHook, runParallelHook, getPluginsInfo, PLUGINS_DIR } from './plugin-loader.js';
 
 const PREFS_FILE = join(LOG_DIR, 'preferences.json');
 const isCliMode = process.env.CCV_CLI_MODE === '1';
@@ -184,7 +185,7 @@ function startWatching() {
   watchLogFile(LOG_FILE);
 }
 
-function handleRequest(req, res) {
+async function handleRequest(req, res) {
   const parsedUrl = new URL(req.url, `http://${req.headers.host}`);
   const url = parsedUrl.pathname;
   const method = req.method;
@@ -196,7 +197,7 @@ function handleRequest(req, res) {
 
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (method === 'OPTIONS') {
@@ -712,6 +713,95 @@ function handleRequest(req, res) {
     return;
   }
 
+  // 插件管理 API
+  if (url === '/api/plugins' && method === 'GET') {
+    const plugins = getPluginsInfo();
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ plugins, pluginsDir: PLUGINS_DIR }));
+    return;
+  }
+
+  if (url === '/api/plugins' && method === 'DELETE') {
+    const file = parsedUrl.searchParams.get('file');
+    if (!file || file.includes('..') || file.includes('/') || file.includes('\\')) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid file name' }));
+      return;
+    }
+    const filePath = join(PLUGINS_DIR, file);
+    try {
+      if (!existsSync(filePath)) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'File not found' }));
+        return;
+      }
+      unlinkSync(filePath);
+      await loadPlugins();
+      const plugins = getPluginsInfo();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, plugins, pluginsDir: PLUGINS_DIR }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  if (url === '/api/plugins/reload' && method === 'POST') {
+    try {
+      await loadPlugins();
+      const plugins = getPluginsInfo();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true, plugins, pluginsDir: PLUGINS_DIR }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  if (url === '/api/plugins/upload' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { files: fileList } = JSON.parse(body);
+        if (!Array.isArray(fileList) || fileList.length === 0) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'No files provided' }));
+          return;
+        }
+        // 确保插件目录存在
+        if (!existsSync(PLUGINS_DIR)) {
+          mkdirSync(PLUGINS_DIR, { recursive: true });
+        }
+        for (const { name, content } of fileList) {
+          if (!name || typeof content !== 'string') continue;
+          const filename = name.replace(/.*[/\\]/, '');
+          if (!filename.endsWith('.js') && !filename.endsWith('.mjs')) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Only .js or .mjs files are allowed' }));
+            return;
+          }
+          if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid file name' }));
+            return;
+          }
+          writeFileSync(join(PLUGINS_DIR, filename), content, 'utf-8');
+        }
+        await loadPlugins();
+        const plugins = getPluginsInfo();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, plugins, pluginsDir: PLUGINS_DIR }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
   // 返回局域网访问地址
   if (url === '/api/local-url' && method === 'GET') {
     const nets = networkInterfaces();
@@ -725,8 +815,10 @@ function handleRequest(req, res) {
       }
       if (localIp !== '127.0.0.1') break;
     }
+    const defaultUrl = `http://${localIp}:${actualPort}?token=${ACCESS_TOKEN}`;
+    const hookResult = await runWaterfallHook('localUrl', { url: defaultUrl, ip: localIp, port: actualPort, token: ACCESS_TOKEN });
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ url: `http://${localIp}:${actualPort}?token=${ACCESS_TOKEN}` }));
+    res.end(JSON.stringify({ url: hookResult.url }));
     return;
   }
 
@@ -929,6 +1021,13 @@ function handleRequest(req, res) {
     return;
   }
 
+  // 非 GET 请求的 API 404
+  if (url.startsWith('/api/')) {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Not Found' }));
+    return;
+  }
+
   res.writeHead(404);
   res.end('Not Found');
 }
@@ -974,6 +1073,10 @@ export async function startViewer() {
           if (isCliMode) {
             setupTerminalWebSocket(currentServer);
           }
+          // 加载插件并通知服务器已启动
+          loadPlugins()
+            .then(() => runParallelHook('serverStarted', { port, host: HOST }))
+            .catch(err => console.error('[CC Viewer] Plugin init error:', err.message));
           resolve(server);
         });
 
@@ -1123,6 +1226,7 @@ export function getPort() {
 }
 
 export function stopViewer() {
+  runParallelHook('serverStopping').catch(() => {});
   // 如果用户未做选择，将临时文件转为正式文件
   if (_resumeState && _resumeState.tempFile) {
     try {

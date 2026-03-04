@@ -704,6 +704,82 @@ const i18nData = {
     "tr": "Yerel .txt olarak dışa aktar",
     "uk": "Експорт у локальний .txt"
   },
+  "ui.pluginManagement": {
+    "zh": "插件管理",
+    "en": "Plugin Management",
+    "zh-TW": "外掛管理",
+    "ko": "플러그인 관리",
+    "ja": "プラグイン管理",
+    "de": "Plugin-Verwaltung",
+    "es": "Gestión de plugins",
+    "fr": "Gestion des plugins",
+    "it": "Gestione plugin",
+    "da": "Plugin-styring",
+    "pl": "Zarządzanie wtyczkami",
+    "ru": "Управление плагинами",
+    "ar": "إدارة الإضافات",
+    "no": "Plugin-administrasjon",
+    "pt-BR": "Gerenciamento de plugins",
+    "th": "จัดการปลั๊กอิน",
+    "tr": "Eklenti yönetimi",
+    "uk": "Керування плагінами"
+  },
+  "ui.plugins.empty": {
+    "zh": "暂无插件",
+    "en": "No plugins installed"
+  },
+  "ui.plugins.emptyHint": {
+    "zh": "将 .js 文件放入插件目录即可加载",
+    "en": "Place .js files in the plugins directory to load"
+  },
+  "ui.plugins.name": {
+    "zh": "名称",
+    "en": "Name"
+  },
+  "ui.plugins.file": {
+    "zh": "文件",
+    "en": "File"
+  },
+  "ui.plugins.hooks": {
+    "zh": "Hooks",
+    "en": "Hooks"
+  },
+  "ui.plugins.delete": {
+    "zh": "删除",
+    "en": "Delete"
+  },
+  "ui.plugins.deleteConfirm": {
+    "zh": "确认删除插件「{name}」？此操作不可恢复。",
+    "en": "Delete plugin \"{name}\"? This cannot be undone."
+  },
+  "ui.plugins.reload": {
+    "zh": "重新加载",
+    "en": "Reload"
+  },
+  "ui.plugins.pluginsDir": {
+    "zh": "插件目录",
+    "en": "Plugin directory"
+  },
+  "ui.plugins.add": {
+    "zh": "添加插件",
+    "en": "Add Plugin"
+  },
+  "ui.plugins.invalidFile": {
+    "zh": "请选择 .js 或 .mjs 文件",
+    "en": "Please select .js or .mjs files"
+  },
+  "ui.plugins.addSuccess": {
+    "zh": "插件添加成功",
+    "en": "Plugin added successfully"
+  },
+  "ui.plugins.addFailed": {
+    "zh": "添加插件失败：{reason}",
+    "en": "Failed to add plugin: {reason}"
+  },
+  "ui.plugins.serverError": {
+    "zh": "服务端错误（{status}），请检查服务是否正常运行",
+    "en": "Server error ({status}), please check if the server is running properly"
+  },
   "ui.tokenStats": {
     "zh": "数据统计",
     "en": "Data Stats",

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Space, Tag, Button, Badge, Typography, Dropdown, Popover, Modal, Collapse, Drawer, Switch, Tabs, Spin, Tooltip, Input, message } from 'antd';
-import { MessageOutlined, FileTextOutlined, ImportOutlined, DownOutlined, DashboardOutlined, ExportOutlined, DownloadOutlined, SettingOutlined, BarChartOutlined, CodeOutlined, GlobalOutlined, CopyOutlined } from '@ant-design/icons';
+import { MessageOutlined, FileTextOutlined, ImportOutlined, DownOutlined, DashboardOutlined, ExportOutlined, DownloadOutlined, SettingOutlined, BarChartOutlined, CodeOutlined, GlobalOutlined, CopyOutlined, ApiOutlined, DeleteOutlined, ReloadOutlined, PlusOutlined } from '@ant-design/icons';
 import { QRCodeCanvas } from 'qrcode.react';
 import { formatTokenCount, computeTokenStats, computeCacheRebuildStats, computeToolUsageStats, computeSkillUsageStats } from '../utils/helpers';
 import { isSystemText, classifyUserContent, isMainAgent } from '../utils/contentFilter';
@@ -35,7 +35,7 @@ const { Text } = Typography;
 class AppHeader extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { countdownText: '', promptModalVisible: false, promptData: [], promptViewMode: 'original', settingsDrawerVisible: false, globalSettingsVisible: false, projectStatsVisible: false, projectStats: null, projectStatsLoading: false, localUrl: '' };
+    this.state = { countdownText: '', promptModalVisible: false, promptData: [], promptViewMode: 'original', settingsDrawerVisible: false, globalSettingsVisible: false, projectStatsVisible: false, projectStats: null, projectStatsLoading: false, localUrl: '', pluginModalVisible: false, pluginsList: [], pluginsDir: '', deleteConfirmVisible: false, deleteTarget: null };
     this._rafId = null;
     this._expiredTimer = null;
     this.updateCountdown = this.updateCountdown.bind(this);
@@ -518,6 +518,124 @@ class AppHeader extends React.Component {
       .catch(() => this.setState({ projectStats: null, projectStatsLoading: false }));
   };
 
+  fetchPlugins = () => {
+    return fetch('/api/plugins').then(r => {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(data => {
+      this.setState({ pluginsList: data.plugins || [], pluginsDir: data.pluginsDir || '' });
+    }).catch(() => {});
+  };
+
+  handleShowPlugins = () => {
+    this.setState({ pluginModalVisible: true });
+    this.fetchPlugins();
+  };
+
+  handleTogglePlugin = (name, enabled) => {
+    fetch('/api/preferences').then(r => r.json()).then(prefs => {
+      let disabledPlugins = Array.isArray(prefs.disabledPlugins) ? [...prefs.disabledPlugins] : [];
+      if (enabled) {
+        disabledPlugins = disabledPlugins.filter(n => n !== name);
+      } else {
+        if (!disabledPlugins.includes(name)) disabledPlugins.push(name);
+      }
+      return fetch('/api/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ disabledPlugins }),
+      });
+    }).then(() => {
+      return fetch('/api/plugins/reload', { method: 'POST' });
+    }).then(r => {
+      if (!r.ok) throw new Error(r.status);
+      return r.json();
+    }).then(data => {
+      this.setState({ pluginsList: data.plugins || [], pluginsDir: data.pluginsDir || '' });
+    }).catch(() => {});
+  };
+
+  handleDeletePlugin = (file, name) => {
+    this.setState({ deleteConfirmVisible: true, deleteTarget: { file, name } });
+  };
+
+  handleDeletePluginConfirm = () => {
+    const { file } = this.state.deleteTarget || {};
+    if (!file) return;
+    this.setState({ deleteConfirmVisible: false, deleteTarget: null });
+    fetch(`/api/plugins?file=${encodeURIComponent(file)}`, { method: 'DELETE' })
+      .then(r => {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+      .then(data => {
+        if (data.plugins) {
+          this.setState({ pluginsList: data.plugins, pluginsDir: data.pluginsDir || '' });
+        }
+      }).catch(() => {});
+  };
+
+  handleReloadPlugins = () => {
+    fetch('/api/plugins/reload', { method: 'POST' })
+      .then(r => {
+        if (!r.ok) throw new Error(r.status);
+        return r.json();
+      })
+      .then(data => {
+        this.setState({ pluginsList: data.plugins || [], pluginsDir: data.pluginsDir || '' });
+      }).catch(() => {});
+  };
+
+  handleAddPlugin = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.js,.mjs';
+    input.multiple = true;
+    input.onchange = () => {
+      const fileHandles = input.files;
+      if (!fileHandles || fileHandles.length === 0) return;
+      for (const f of fileHandles) {
+        if (!f.name.endsWith('.js') && !f.name.endsWith('.mjs')) {
+          message.error(t('ui.plugins.invalidFile'));
+          return;
+        }
+      }
+      // 用 FileReader 读取所有文件内容，以 JSON 发送
+      const readPromises = Array.from(fileHandles).map(f => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({ name: f.name, content: reader.result });
+          reader.onerror = () => reject(new Error(`Failed to read ${f.name}`));
+          reader.readAsText(f);
+        });
+      });
+      Promise.all(readPromises).then(files => {
+        return fetch('/api/plugins/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ files }),
+        });
+      }).then(r => {
+        if (!r.ok) {
+          return r.text().then(text => {
+            try { const j = JSON.parse(text); return j; } catch { throw new Error(t('ui.plugins.serverError', { status: r.status })); }
+          });
+        }
+        return r.json();
+      }).then(data => {
+        if (data.error) {
+          message.error(t('ui.plugins.addFailed', { reason: data.error }));
+        } else if (data.plugins) {
+          this.setState({ pluginsList: data.plugins, pluginsDir: data.pluginsDir || '' });
+          message.success(t('ui.plugins.addSuccess'));
+        }
+      }).catch(err => {
+        message.error(err.message);
+      });
+    };
+    input.click();
+  };
+
   renderProjectStatsContent() {
     const { projectStats, projectStatsLoading } = this.state;
 
@@ -645,6 +763,12 @@ class AppHeader extends React.Component {
         icon: <ExportOutlined />,
         label: t('ui.exportPrompts'),
         onClick: this.handleShowPrompts,
+      },
+      {
+        key: 'plugin-management',
+        icon: <ApiOutlined />,
+        label: t('ui.pluginManagement'),
+        onClick: this.handleShowPlugins,
       },
       { type: 'divider' },
       {
@@ -931,6 +1055,82 @@ class AppHeader extends React.Component {
         >
           {this.renderProjectStatsContent()}
         </Drawer>
+        <Modal
+          title={<span><ApiOutlined style={{ marginRight: 8 }} />{t('ui.pluginManagement')}</span>}
+          open={this.state.pluginModalVisible}
+          onCancel={() => this.setState({ pluginModalVisible: false })}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Button icon={<PlusOutlined />} onClick={this.handleAddPlugin}>{t('ui.plugins.add')}</Button>
+              <Button icon={<ReloadOutlined />} onClick={this.handleReloadPlugins}>{t('ui.plugins.reload')}</Button>
+            </div>
+          }
+          width={560}
+        >
+          {this.state.pluginsDir && (
+            <div className={styles.pluginDirHint}>
+              <span style={{ color: '#888' }}>{t('ui.plugins.pluginsDir')}:</span>{' '}
+              <code
+                className={styles.pluginDirPath}
+                onClick={() => {
+                  navigator.clipboard.writeText(this.state.pluginsDir).then(() => {
+                    message.success(t('ui.copied'));
+                  }).catch(() => {});
+                }}
+              >
+                {this.state.pluginsDir}
+              </code>
+            </div>
+          )}
+          {this.state.pluginsList.length === 0 ? (
+            <div className={styles.pluginEmpty}>
+              <div style={{ fontSize: 14, marginBottom: 4 }}>{t('ui.plugins.empty')}</div>
+              <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>{t('ui.plugins.emptyHint')}</div>
+              <Button icon={<PlusOutlined />} onClick={this.handleAddPlugin}>{t('ui.plugins.add')}</Button>
+            </div>
+          ) : (
+            <div className={styles.pluginList}>
+              {this.state.pluginsList.map(p => (
+                <div key={p.file} className={styles.pluginItem}>
+                  <div className={styles.pluginInfo}>
+                    <span className={styles.pluginName}>{p.name}</span>
+                    <span className={styles.pluginFile}>{p.file}</span>
+                    {p.hooks.length > 0 && (
+                      <span className={styles.pluginHooks}>
+                        {p.hooks.map(h => <span key={h} className={styles.pluginHookTag}>{h}</span>)}
+                      </span>
+                    )}
+                  </div>
+                  <div className={styles.pluginActions}>
+                    <Switch
+                      size="small"
+                      checked={p.enabled}
+                      onChange={(checked) => this.handleTogglePlugin(p.name, checked)}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => this.handleDeletePlugin(p.file, p.name)}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Modal>
+        <Modal
+          title={t('ui.plugins.delete')}
+          open={this.state.deleteConfirmVisible}
+          onCancel={() => this.setState({ deleteConfirmVisible: false, deleteTarget: null })}
+          onOk={this.handleDeletePluginConfirm}
+          okType="danger"
+          okText="OK"
+          cancelText="Cancel"
+        >
+          <p>{this.state.deleteTarget ? t('ui.plugins.deleteConfirm', { name: this.state.deleteTarget.name }) : ''}</p>
+        </Modal>
       </div>
     );
   }

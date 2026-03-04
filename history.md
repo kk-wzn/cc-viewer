@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.16 (2026-03-04)
+
+- Feat: plugin system — load/unload/enable/disable plugins from `~/.claude/logs/plugins/` directory
+- Feat: plugin management UI — add, delete, toggle, reload plugins from settings panel
+- Feat: plugin hooks support (waterfall & parallel) for extensibility
+- Fix: plugin delete confirm dialog now uses antd Modal with dark theme (was white due to static Modal.confirm)
+- Fix: server.js syntax error — missing closing brace in handleRequest caused `Unexpected token 'export'`
+
 ## 1.4.15 (2026-03-04)
 
 - Fix: mobile terminal always uses 60-col fixed width with auto-scaled font size to fit screen

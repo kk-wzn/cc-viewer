@@ -482,3 +482,89 @@
   font-family: monospace;
 }
 
+/* Plugin Management Modal */
+.pluginDirHint {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: #888;
+}
+
+.pluginDirPath {
+  font-family: Menlo, Monaco, monospace;
+  color: #aaa;
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: #1a1a1a;
+}
+
+.pluginDirPath:hover {
+  color: #3b82f6;
+}
+
+.pluginList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pluginItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid #303030;
+  border-radius: 6px;
+  background: #141414;
+}
+
+.pluginInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pluginName {
+  font-size: 14px;
+  color: #e5e5e5;
+  font-weight: 500;
+}
+
+.pluginFile {
+  font-size: 12px;
+  color: #666;
+  font-family: Menlo, Monaco, monospace;
+}
+
+.pluginHooks {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.pluginHookTag {
+  font-size: 11px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #1e3a5f;
+  color: #6cb6ff;
+  line-height: 18px;
+}
+
+.pluginActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.pluginEmpty {
+  text-align: center;
+  padding: 32px 0;
+  color: #999;
+}
+
