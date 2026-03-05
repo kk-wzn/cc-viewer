@@ -7,7 +7,7 @@ import { dirname, join, extname } from 'node:path';
 import { homedir, userInfo, platform, networkInterfaces } from 'node:os';
 import { execSync } from 'node:child_process';
 import { Worker } from 'node:worker_threads';
-import { LOG_FILE, _initPromise, _resumeState, resolveResumeChoice, _projectName, _logDir, _cachedApiKey, _cachedAuthHeader, _cachedHaikuModel } from './interceptor.js';
+import { LOG_FILE, _initPromise, _resumeState, resolveResumeChoice, _projectName, _logDir, _cachedApiKey, _cachedAuthHeader, _cachedHaikuModel, initForWorkspace, resetWorkspace } from './interceptor.js';
 import { LOG_DIR } from './findcc.js';
 import { t, detectLanguage } from './i18n.js';
 import { checkAndUpdate } from './updater.js';
@@ -15,6 +15,14 @@ import { loadPlugins, runWaterfallHook, runParallelHook, getPluginsInfo, PLUGINS
 
 const PREFS_FILE = join(LOG_DIR, 'preferences.json');
 const isCliMode = process.env.CCV_CLI_MODE === '1';
+const isWorkspaceMode = process.env.CCV_WORKSPACE_MODE === '1';
+
+// 工作区模式：保存 Claude 额外参数，供 launch API 使用
+let _workspaceClaudeArgs = [];
+let _workspaceLaunched = false; // 工作区是否已经启动了会话
+export function setWorkspaceClaudeArgs(args) {
+  _workspaceClaudeArgs = args;
+}
 
 
 // macOS user profile (avatar + display name), cached once
@@ -413,6 +421,170 @@ async function handleRequest(req, res) {
     return;
   }
 
+  // === Workspace API ===
+
+  // 目录浏览器
+  if (url.startsWith('/api/browse-dir') && method === 'GET') {
+    try {
+      const dirPath = parsedUrl.searchParams.get('path') || homedir();
+      if (!existsSync(dirPath) || !statSync(dirPath).isDirectory()) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid directory' }));
+        return;
+      }
+      const entries = readdirSync(dirPath, { withFileTypes: true });
+      const dirs = [];
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        if (entry.name.startsWith('.') && entry.name !== '.') continue;
+        const fullPath = join(dirPath, entry.name);
+        let hasGit = false;
+        try { hasGit = existsSync(join(fullPath, '.git')); } catch {}
+        dirs.push({ name: entry.name, path: fullPath, hasGit });
+      }
+      dirs.sort((a, b) => {
+        if (a.hasGit !== b.hasGit) return a.hasGit ? -1 : 1;
+        return a.name.localeCompare(b.name);
+      });
+      const parent = join(dirPath, '..');
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ current: dirPath, parent: parent !== dirPath ? parent : null, dirs }));
+    } catch (err) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    }
+    return;
+  }
+
+  if (url === '/api/workspaces' && method === 'GET') {
+    import('./workspace-registry.js').then(({ getWorkspaces }) => {
+      const workspaces = getWorkspaces();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ workspaces, workspaceMode: isWorkspaceMode && !_workspaceLaunched }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    return;
+  }
+
+  if (url === '/api/workspaces/launch' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { path: wsPath } = JSON.parse(body);
+        if (!wsPath || !existsSync(wsPath) || !statSync(wsPath).isDirectory()) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid directory path' }));
+          return;
+        }
+
+        const { registerWorkspace } = await import('./workspace-registry.js');
+        registerWorkspace(wsPath);
+
+        // 初始化 interceptor 的日志文件
+        const result = initForWorkspace(wsPath);
+        process.env.CCV_PROJECT_DIR = wsPath;
+
+        // 启动日志监听
+        watchLogFile(LOG_FILE);
+
+        // 启动 stats worker（如果尚未启动）
+        if (!statsWorker) startStatsWorker();
+
+        // 启动 PTY
+        const proxyPort = process.env.CCV_PROXY_PORT;
+        if (proxyPort) {
+          const { spawnClaude } = await import('./pty-manager.js');
+          await spawnClaude(parseInt(proxyPort), wsPath, _workspaceClaudeArgs);
+        }
+
+        _workspaceLaunched = true;
+
+        // 通知所有 SSE 客户端
+        clients.forEach(client => {
+          try {
+            client.write(`event: workspace_started\ndata: ${JSON.stringify({ projectName: result.projectName, path: wsPath })}\n\n`);
+          } catch {}
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, projectName: result.projectName }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  if (url === '/api/workspaces/add' && method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      try {
+        const { path: wsPath } = JSON.parse(body);
+        if (!wsPath || !existsSync(wsPath) || !statSync(wsPath).isDirectory()) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Invalid directory path' }));
+          return;
+        }
+        const { registerWorkspace } = await import('./workspace-registry.js');
+        const entry = registerWorkspace(wsPath);
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true, workspace: entry }));
+      } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message }));
+      }
+    });
+    return;
+  }
+
+  if (url.startsWith('/api/workspaces/') && method === 'DELETE') {
+    const id = url.split('/').pop();
+    import('./workspace-registry.js').then(({ removeWorkspace }) => {
+      const removed = removeWorkspace(id);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: removed }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    return;
+  }
+
+  if (url === '/api/workspaces/stop' && method === 'POST') {
+    import('./pty-manager.js').then(({ killPty }) => {
+      killPty();
+
+      // 停止日志监听
+      for (const logFile of watchedFiles.keys()) {
+        unwatchFile(logFile);
+      }
+      watchedFiles.clear();
+
+      // 重置 interceptor 状态
+      resetWorkspace();
+      _workspaceLaunched = false;
+
+      // 通知所有 SSE 客户端
+      clients.forEach(client => {
+        try {
+          client.write(`event: workspace_stopped\ndata: {}\n\n`);
+        } catch {}
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: true }));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    return;
+  }
+
   // SSE endpoint
   if (url === '/events' && method === 'GET') {
     res.writeHead(200, {
@@ -595,7 +767,7 @@ async function handleRequest(req, res) {
   // CLI 模式检测
   if (url === '/api/cli-mode' && method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ cliMode: isCliMode }));
+    res.end(JSON.stringify({ cliMode: isCliMode, workspaceMode: isWorkspaceMode && !_workspaceLaunched }));
     return;
   }
 
@@ -1067,8 +1239,11 @@ export async function startViewer() {
               execSync(`${cmd} ${url}`, { stdio: 'ignore', timeout: 5000 });
             }
           } catch { }
-          startWatching();
-          startStatsWorker();
+          // 工作区模式下延迟到选择工作区后再启动监听
+          if (!isWorkspaceMode) {
+            startWatching();
+            startStatsWorker();
+          }
           // CLI 模式下启动 WebSocket 服务
           if (isCliMode) {
             setupTerminalWebSocket(currentServer);
@@ -1253,27 +1428,30 @@ export function stopViewer() {
 }
 
 // Auto-start the viewer after log file init completes
-_initPromise.then(() => {
-  startViewer().then((srv) => {
-    if (!srv) return;
-    // 延迟 3 秒异步检查更新
-    setTimeout(() => {
-      checkAndUpdate().then(result => {
-        if (result.status === 'updated') {
-          clients.forEach(client => {
-            try { client.write(`event: update_completed\ndata: ${JSON.stringify({ version: result.remoteVersion })}\n\n`); } catch { }
-          });
-        } else if (result.status === 'major_available') {
-          clients.forEach(client => {
-            try { client.write(`event: update_major_available\ndata: ${JSON.stringify({ version: result.remoteVersion })}\n\n`); } catch { }
-          });
-        }
-      }).catch(() => { });
-    }, 3000);
-  }).catch(err => {
-    console.error('Failed to start CC Viewer:', err);
+// 工作区模式下由 cli.js 直接 import server.js 触发启动，跳过 _initPromise 自动启动
+if (!isWorkspaceMode) {
+  _initPromise.then(() => {
+    startViewer().then((srv) => {
+      if (!srv) return;
+      // 延迟 3 秒异步检查更新
+      setTimeout(() => {
+        checkAndUpdate().then(result => {
+          if (result.status === 'updated') {
+            clients.forEach(client => {
+              try { client.write(`event: update_completed\ndata: ${JSON.stringify({ version: result.remoteVersion })}\n\n`); } catch { }
+            });
+          } else if (result.status === 'major_available') {
+            clients.forEach(client => {
+              try { client.write(`event: update_major_available\ndata: ${JSON.stringify({ version: result.remoteVersion })}\n\n`); } catch { }
+            });
+          }
+        }).catch(() => { });
+      }, 3000);
+    }).catch(err => {
+      console.error('Failed to start CC Viewer:', err);
+    });
   });
-});
+}
 
 // 进程退出时，将未决的临时文件转为正式文件
 function handleExit() {

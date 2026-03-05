@@ -111,13 +111,21 @@ function resolveResumeChoice(choice) {
 }
 
 // 初始化日志文件路径（异步，支持用户交互）
-const { filePath: _newLogFile, dir: _logDir, projectName: _projectName } = generateNewLogFilePath();
+// 工作区模式下延迟到选择工作区后再初始化
+let _newLogFile, _logDir, _projectName;
+if (process.env.CCV_WORKSPACE_MODE === '1') {
+  _newLogFile = '';
+  _logDir = '';
+  _projectName = '';
+} else {
+  ({ filePath: _newLogFile, dir: _logDir, projectName: _projectName } = generateNewLogFilePath());
+  // 启动时清理残留临时文件
+  cleanupTempFiles(_logDir, _projectName);
+}
 let LOG_FILE = _newLogFile;
 
-// 启动时清理残留临时文件
-cleanupTempFiles(_logDir, _projectName);
-
 const _initPromise = (async () => {
+  if (!_logDir || !_projectName) return; // 工作区模式下跳过
   try {
     const recentLog = findRecentLog(_logDir, _projectName);
     if (recentLog) {
@@ -142,6 +150,57 @@ const _initPromise = (async () => {
 })();
 
 export { LOG_FILE, _initPromise, _resumeState, _choicePromise, resolveResumeChoice, _projectName, _logDir };
+
+// 工作区模式：动态初始化指定路径的日志文件
+// 如果有 1 小时内的最近日志，自动复用（与单目录模式行为一致）
+export function initForWorkspace(projectPath) {
+  const projectName = basename(projectPath).replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+  const dir = join(LOG_DIR, projectName);
+  try { mkdirSync(dir, { recursive: true }); } catch {}
+
+  cleanupTempFiles(dir, projectName);
+
+  // 检查是否有最近的日志文件可以复用
+  const recentLog = findRecentLog(dir, projectName);
+  if (recentLog) {
+    try {
+      const stats = statSync(recentLog);
+      const diff = Date.now() - stats.mtime.getTime();
+      const oneHour = 60 * 60 * 1000;
+      if (diff < oneHour) {
+        _projectName = projectName;
+        _logDir = dir;
+        LOG_FILE = recentLog;
+        return { filePath: recentLog, dir, projectName, resumed: true };
+      }
+    } catch {}
+  }
+
+  // 没有最近日志，创建新文件
+  const now = new Date();
+  const ts = now.getFullYear().toString()
+    + String(now.getMonth() + 1).padStart(2, '0')
+    + String(now.getDate()).padStart(2, '0')
+    + '_'
+    + String(now.getHours()).padStart(2, '0')
+    + String(now.getMinutes()).padStart(2, '0')
+    + String(now.getSeconds()).padStart(2, '0');
+
+  const filePath = join(dir, `${projectName}_${ts}.jsonl`);
+
+  _projectName = projectName;
+  _logDir = dir;
+  LOG_FILE = filePath;
+
+  return { filePath, dir, projectName, resumed: false };
+}
+
+// 工作区模式：重置日志状态（返回工作区列表时调用）
+export function resetWorkspace() {
+  _projectName = '';
+  _logDir = '';
+  LOG_FILE = '';
+}
 
 const MAX_LOG_SIZE = 300 * 1024 * 1024; // 300MB
 

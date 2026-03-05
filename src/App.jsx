@@ -8,6 +8,7 @@ import ChatView from './components/ChatView';
 import TerminalPanel from './components/TerminalPanel';
 import PanelResizer from './components/PanelResizer';
 import MobileGitDiff from './components/MobileGitDiff';
+import WorkspaceList from './components/WorkspaceList';
 import { t, getLang, setLang } from './i18n';
 import { formatTokenCount, filterRelevantRequests, findPrevMainAgentTimestamp } from './utils/helpers';
 import { isMainAgent } from './utils/contentFilter';
@@ -51,6 +52,7 @@ class App extends React.Component {
       githubStars: null,
       cliMode: false,
       terminalVisible: true,
+      workspaceMode: false,
     };
     this.eventSource = null;
     this._autoSelectTimer = null;
@@ -99,11 +101,13 @@ class App extends React.Component {
       .then(data => { if (data.stargazers_count != null) this.setState({ githubStars: data.stargazers_count }); })
       .catch(() => { });
 
-    // 检测 CLI 模式
+    // 检测 CLI 模式 / 工作区模式
     fetch('/api/cli-mode')
       .then(res => res.json())
       .then(data => {
-        if (data.cliMode) {
+        if (data.workspaceMode) {
+          this.setState({ cliMode: true, workspaceMode: true, isWorkspaceServer: true });
+        } else if (data.cliMode) {
           this.setState({ cliMode: true, viewMode: 'chat' });
         }
       })
@@ -115,6 +119,9 @@ class App extends React.Component {
     if (logfile) {
       this.loadLocalLogFile(logfile);
     } else {
+      // 工作区模式下延迟到选择工作区后再初始化 SSE
+      // 需要等 /api/cli-mode 返回才知道是否是工作区模式
+      // 因此先正常初始化，initSSE 内部会处理工作区模式的 SSE 事件
       this.initSSE();
     }
   }
@@ -200,6 +207,27 @@ class App extends React.Component {
         } catch {
           this.setState({ fileLoading: false, fileLoadingCount: 0 });
         }
+      });
+      // 工作区模式事件
+      this.eventSource.addEventListener('workspace_started', (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          this.setState({
+            workspaceMode: false,
+            projectName: data.projectName || '',
+            viewMode: 'chat',
+            cliMode: true,
+          });
+        } catch {}
+      });
+      this.eventSource.addEventListener('workspace_stopped', () => {
+        this.setState({
+          workspaceMode: true,
+          requests: [],
+          mainAgentSessions: [],
+          projectName: '',
+          selectedIndex: null,
+        });
       });
       this.eventSource.onerror = () => console.error('SSE连接错误');
     } catch (error) {
@@ -459,6 +487,29 @@ class App extends React.Component {
       }
       return { viewMode: 'chat', chatScrollToTs: targetTs };
     });
+  };
+
+  handleWorkspaceLaunch = ({ projectName, path }) => {
+    this.setState({
+      workspaceMode: false,
+      projectName,
+      viewMode: 'chat',
+      cliMode: true,
+    });
+  };
+
+  handleReturnToWorkspaces = () => {
+    fetch('/api/workspaces/stop', { method: 'POST' })
+      .then(() => {
+        this.setState({
+          workspaceMode: true,
+          requests: [],
+          mainAgentSessions: [],
+          projectName: '',
+          selectedIndex: null,
+        });
+      })
+      .catch(() => {});
   };
 
   handleToggleViewMode = () => {
@@ -744,6 +795,25 @@ class App extends React.Component {
 
     const selectedRequest = selectedIndex !== null ? filteredRequests[selectedIndex] : null;
 
+    // 工作区选择器模式
+    if (this.state.workspaceMode) {
+      return (
+        <ConfigProvider
+          theme={{
+            algorithm: theme.darkAlgorithm,
+            token: {
+              colorBgContainer: '#111',
+              colorBgLayout: '#0a0a0a',
+              colorBgElevated: '#1a1a1a',
+              colorBorder: '#2a2a2a',
+            },
+          }}
+        >
+          <WorkspaceList onLaunch={this.handleWorkspaceLaunch} />
+        </ConfigProvider>
+      );
+    }
+
     // CLI 模式 + 手机端：只显示终端，顶部显示监控状态
     const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
     if (this.state.cliMode && isMobile) {
@@ -849,6 +919,7 @@ class App extends React.Component {
               cliMode={this.state.cliMode}
               terminalVisible={this.state.terminalVisible}
               onToggleTerminal={() => this.setState(prev => ({ terminalVisible: !prev.terminalVisible }))}
+              onReturnToWorkspaces={this.state.cliMode ? this.handleReturnToWorkspaces : null}
             />
           </Layout.Header>
 

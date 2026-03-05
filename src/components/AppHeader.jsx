@@ -748,7 +748,7 @@ class AppHeader extends React.Component {
   }
 
   render() {
-    const { requestCount, requests = [], viewMode, cacheType, onToggleViewMode, onImportLocalLogs, onLangChange, isLocalLog, localLogFile, projectName, collapseToolResults, onCollapseToolResultsChange, expandThinking, onExpandThinkingChange, expandDiff, onExpandDiffChange, filterIrrelevant, onFilterIrrelevantChange, updateInfo, onDismissUpdate, cliMode, terminalVisible, onToggleTerminal } = this.props;
+    const { requestCount, requests = [], viewMode, cacheType, onToggleViewMode, onImportLocalLogs, onLangChange, isLocalLog, localLogFile, projectName, collapseToolResults, onCollapseToolResultsChange, expandThinking, onExpandThinkingChange, expandDiff, onExpandDiffChange, filterIrrelevant, onFilterIrrelevantChange, updateInfo, onDismissUpdate, cliMode, terminalVisible, onToggleTerminal, onReturnToWorkspaces } = this.props;
     const { countdownText } = this.state;
 
     const menuItems = [
@@ -931,6 +931,16 @@ class AppHeader extends React.Component {
                 }
               />
             </Popover>
+          )}
+          {cliMode && onReturnToWorkspaces && (
+            <Button
+              type="text"
+              icon={<ImportOutlined style={{ transform: 'scaleX(-1)' }} />}
+              onClick={onReturnToWorkspaces}
+              style={{ color: '#888' }}
+            >
+              {t('ui.workspaces.backToList')}
+            </Button>
           )}
           {cliMode && viewMode === 'chat' && (
             <Button

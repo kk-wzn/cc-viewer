@@ -232,7 +232,7 @@ async function runProxyCommand(args) {
   }
 }
 
-async function runCliMode(extraClaudeArgs = []) {
+async function runCliMode(extraClaudeArgs = [], cwd) {
   const nativePath = resolveNativePath();
   if (!nativePath) {
     console.error(t('cli.cMode.notFound'));
@@ -241,14 +241,22 @@ async function runCliMode(extraClaudeArgs = []) {
 
   console.log(t('cli.cMode.starting'));
 
+  const workingDir = cwd || process.cwd();
+
+  // 注册工作区
+  const { registerWorkspace } = await import('./workspace-registry.js');
+  registerWorkspace(workingDir);
+
   // 2. 设置 CLI 模式标记（必须在 import proxy.js 之前，
   //    因为 proxy.js → interceptor.js 可能触发 server.js 加载，
   //    server.js 的 isCliMode 在模块顶层求值且只执行一次）
   process.env.CCV_CLI_MODE = '1';
+  process.env.CCV_PROJECT_DIR = workingDir;
 
   // 1. 启动代理
   const { startProxy } = await import('./proxy.js');
   const proxyPort = await startProxy();
+  process.env.CCV_PROXY_PORT = String(proxyPort);
 
   // 3. 启动 HTTP 服务器
   const serverMod = await import('./server.js');
@@ -267,7 +275,7 @@ async function runCliMode(extraClaudeArgs = []) {
 
   // 3. 启动 PTY 中的 claude
   const { spawnClaude, killPty } = await import('./pty-manager.js');
-  await spawnClaude(proxyPort, process.cwd(), extraClaudeArgs);
+  await spawnClaude(proxyPort, workingDir, extraClaudeArgs);
 
   // 4. 自动打开浏览器
   const url = `http://127.0.0.1:${port}`;
@@ -280,6 +288,55 @@ async function runCliMode(extraClaudeArgs = []) {
   console.log(`CC Viewer: ${url}`);
 
   // 5. 注册退出处理
+  const cleanup = () => {
+    killPty();
+    serverMod.stopViewer();
+    process.exit();
+  };
+  process.on('SIGINT', cleanup);
+  process.on('SIGTERM', cleanup);
+}
+
+async function runCliModeWorkspaceSelector(extraClaudeArgs = []) {
+  const nativePath = resolveNativePath();
+  if (!nativePath) {
+    console.error(t('cli.cMode.notFound'));
+    process.exit(1);
+  }
+
+  console.log(t('cli.cMode.starting'));
+
+  process.env.CCV_CLI_MODE = '1';
+  process.env.CCV_WORKSPACE_MODE = '1';
+
+  // 启动代理
+  const { startProxy } = await import('./proxy.js');
+  const proxyPort = await startProxy();
+  process.env.CCV_PROXY_PORT = String(proxyPort);
+
+  // 启动 HTTP 服务器（工作区模式，不初始化 interceptor 日志）
+  const serverMod = await import('./server.js');
+
+  // 工作区模式下 server.js 跳过了自动启动，需要手动调用
+  await serverMod.startViewer();
+
+  const port = serverMod.getPort();
+
+  // 保存 extraClaudeArgs 供后续 launch 使用
+  serverMod.setWorkspaceClaudeArgs(extraClaudeArgs);
+
+  // 自动打开浏览器
+  const url = `http://127.0.0.1:${port}`;
+  try {
+    const cmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open';
+    const { execSync } = await import('node:child_process');
+    execSync(`${cmd} ${url}`, { stdio: 'ignore', timeout: 5000 });
+  } catch {}
+
+  console.log(`CC Viewer (Workspace): ${url}`);
+
+  // 注册退出处理
+  const { killPty } = await import('./pty-manager.js');
   const cleanup = () => {
     killPty();
     serverMod.stopViewer();
@@ -315,7 +372,16 @@ if (isVersion) {
 
 if (isCliMode || isDangerousMode) {
   const extraArgs = isDangerousMode ? ['--dangerously-skip-permissions'] : [];
-  runCliMode(extraArgs).catch(err => {
+
+  // 解析 -d/-c 后的可选路径参数
+  const flagIndex = args.findIndex(a => a === '-d' || a === '--d' || a === '-c' || a === '--c');
+  let workspacePath = null;
+  if (flagIndex >= 0 && flagIndex + 1 < args.length && !args[flagIndex + 1].startsWith('-')) {
+    workspacePath = resolve(args[flagIndex + 1]);
+  }
+
+  // 默认用 cwd 启动，支持可选路径参数
+  runCliMode(extraArgs, workspacePath || process.cwd()).catch(err => {
     console.error('CLI mode error:', err);
     process.exit(1);
   });

@@ -9,6 +9,7 @@ let dataListeners = [];
 let exitListeners = [];
 let lastExitCode = null;
 let outputBuffer = '';
+let currentWorkspacePath = null;
 const MAX_BUFFER = 200000;
 
 function fixSpawnHelperPermissions() {
@@ -26,7 +27,7 @@ function fixSpawnHelperPermissions() {
 
 export async function spawnClaude(proxyPort, cwd, extraArgs = []) {
   if (ptyProcess) {
-    throw new Error('PTY process already running');
+    killPty();
   }
 
   const ptyMod = await import('node-pty');
@@ -51,6 +52,7 @@ export async function spawnClaude(proxyPort, cwd, extraArgs = []) {
 
   lastExitCode = null;
   outputBuffer = '';
+  currentWorkspacePath = cwd || process.cwd();
 
   ptyProcess = pty.spawn(claudePath, args, {
     name: 'xterm-256color',
@@ -73,6 +75,7 @@ export async function spawnClaude(proxyPort, cwd, extraArgs = []) {
   ptyProcess.onExit(({ exitCode }) => {
     lastExitCode = exitCode;
     ptyProcess = null;
+    currentWorkspacePath = null;
     for (const cb of exitListeners) {
       try { cb(exitCode); } catch {}
     }
@@ -118,6 +121,14 @@ export function getPtyState() {
   return {
     running: !!ptyProcess,
     exitCode: lastExitCode,
+  };
+}
+
+export function getCurrentWorkspace() {
+  return {
+    running: !!ptyProcess,
+    exitCode: lastExitCode,
+    cwd: currentWorkspacePath,
   };
 }
 

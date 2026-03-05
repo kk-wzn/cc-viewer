@@ -3358,6 +3358,173 @@ const i18nData = {
     "da": "Tur {n}", "pl": "Tura {n}", "ru": "Ход {n}",
     "ar": "الدور {n}", "no": "Tur {n}", "pt-BR": "Turno {n}",
     "th": "รอบ {n}", "tr": "Tur {n}", "uk": "Хід {n}"
+  },
+  "ui.workspaces.title": {
+    "zh": "工作区", "en": "Workspaces", "zh-TW": "工作區",
+    "ko": "워크스페이스", "ja": "ワークスペース", "de": "Arbeitsbereiche",
+    "es": "Espacios de trabajo", "fr": "Espaces de travail", "it": "Aree di lavoro",
+    "da": "Arbejdsområder", "pl": "Obszary robocze", "ru": "Рабочие пространства",
+    "ar": "مساحات العمل", "no": "Arbeidsområder", "pt-BR": "Áreas de trabalho",
+    "th": "เวิร์กสเปซ", "tr": "Çalışma alanları", "uk": "Робочі простори"
+  },
+  "ui.workspaces.subtitle": {
+    "zh": "选择一个项目目录启动 Claude 会话", "en": "Select a project directory to start a Claude session",
+    "zh-TW": "選擇一個專案目錄啟動 Claude 會話",
+    "ko": "Claude 세션을 시작할 프로젝트 디렉토리를 선택하세요",
+    "ja": "Claude セッションを開始するプロジェクトディレクトリを選択",
+    "de": "Wählen Sie ein Projektverzeichnis, um eine Claude-Sitzung zu starten",
+    "es": "Seleccione un directorio de proyecto para iniciar una sesión de Claude",
+    "fr": "Sélectionnez un répertoire de projet pour démarrer une session Claude",
+    "it": "Seleziona una directory di progetto per avviare una sessione Claude",
+    "da": "Vælg en projektmappe for at starte en Claude-session",
+    "pl": "Wybierz katalog projektu, aby rozpocząć sesję Claude",
+    "ru": "Выберите каталог проекта для запуска сеанса Claude",
+    "ar": "اختر مجلد مشروع لبدء جلسة Claude",
+    "no": "Velg en prosjektmappe for å starte en Claude-økt",
+    "pt-BR": "Selecione um diretório de projeto para iniciar uma sessão do Claude",
+    "th": "เลือกไดเรกทอรีโปรเจกต์เพื่อเริ่มเซสชัน Claude",
+    "tr": "Claude oturumu başlatmak için bir proje dizini seçin",
+    "uk": "Виберіть каталог проєкту для запуску сеансу Claude"
+  },
+  "ui.workspaces.add": {
+    "zh": "添加", "en": "Add", "zh-TW": "新增",
+    "ko": "추가", "ja": "追加", "de": "Hinzufügen",
+    "es": "Añadir", "fr": "Ajouter", "it": "Aggiungi",
+    "da": "Tilføj", "pl": "Dodaj", "ru": "Добавить",
+    "ar": "إضافة", "no": "Legg til", "pt-BR": "Adicionar",
+    "th": "เพิ่ม", "tr": "Ekle", "uk": "Додати"
+  },
+  "ui.workspaces.open": {
+    "zh": "打开", "en": "Open", "zh-TW": "開啟",
+    "ko": "열기", "ja": "開く", "de": "Öffnen",
+    "es": "Abrir", "fr": "Ouvrir", "it": "Apri",
+    "da": "Åbn", "pl": "Otwórz", "ru": "Открыть",
+    "ar": "فتح", "no": "Åpne", "pt-BR": "Abrir",
+    "th": "เปิด", "tr": "Aç", "uk": "Відкрити"
+  },
+  "ui.workspaces.empty": {
+    "zh": "暂无工作区，添加一个项目目录开始使用", "en": "No workspaces yet. Add a project directory to get started.",
+    "zh-TW": "暫無工作區，新增一個專案目錄開始使用",
+    "ko": "아직 워크스페이스가 없습니다. 프로젝트 디렉토리를 추가하세요.",
+    "ja": "ワークスペースはまだありません。プロジェクトディレクトリを追加してください。",
+    "de": "Noch keine Arbeitsbereiche. Fügen Sie ein Projektverzeichnis hinzu.",
+    "es": "Aún no hay espacios de trabajo. Añada un directorio de proyecto.",
+    "fr": "Aucun espace de travail. Ajoutez un répertoire de projet.",
+    "it": "Nessuna area di lavoro. Aggiungi una directory di progetto.",
+    "da": "Ingen arbejdsområder endnu. Tilføj en projektmappe.",
+    "pl": "Brak obszarów roboczych. Dodaj katalog projektu.",
+    "ru": "Пока нет рабочих пространств. Добавьте каталог проекта.",
+    "ar": "لا توجد مساحات عمل بعد. أضف مجلد مشروع للبدء.",
+    "no": "Ingen arbeidsområder ennå. Legg til en prosjektmappe.",
+    "pt-BR": "Nenhuma área de trabalho. Adicione um diretório de projeto.",
+    "th": "ยังไม่มีเวิร์กสเปซ เพิ่มไดเรกทอรีโปรเจกต์เพื่อเริ่มใช้งาน",
+    "tr": "Henüz çalışma alanı yok. Başlamak için bir proje dizini ekleyin.",
+    "uk": "Робочих просторів ще немає. Додайте каталог проєкту."
+  },
+  "ui.workspaces.pathPlaceholder": {
+    "zh": "输入项目目录路径", "en": "Enter project directory path",
+    "zh-TW": "輸入專案目錄路徑",
+    "ko": "프로젝트 디렉토리 경로를 입력하세요",
+    "ja": "プロジェクトディレクトリのパスを入力",
+    "de": "Projektverzeichnispfad eingeben",
+    "es": "Ingrese la ruta del directorio del proyecto",
+    "fr": "Entrez le chemin du répertoire du projet",
+    "it": "Inserisci il percorso della directory del progetto",
+    "da": "Indtast projektmappens sti",
+    "pl": "Wprowadź ścieżkę katalogu projektu",
+    "ru": "Введите путь к каталогу проекта",
+    "ar": "أدخل مسار مجلد المشروع",
+    "no": "Skriv inn prosjektmappens sti",
+    "pt-BR": "Digite o caminho do diretório do projeto",
+    "th": "ป้อนเส้นทางไดเรกทอรีโปรเจกต์",
+    "tr": "Proje dizini yolunu girin",
+    "uk": "Введіть шлях до каталогу проєкту"
+  },
+  "ui.workspaces.confirmRemove": {
+    "zh": "确定从列表中移除该工作区？", "en": "Remove this workspace from the list?",
+    "zh-TW": "確定從列表中移除該工作區？",
+    "ko": "이 워크스페이스를 목록에서 제거하시겠습니까?",
+    "ja": "このワークスペースをリストから削除しますか？",
+    "de": "Diesen Arbeitsbereich aus der Liste entfernen?",
+    "es": "¿Eliminar este espacio de trabajo de la lista?",
+    "fr": "Supprimer cet espace de travail de la liste ?",
+    "it": "Rimuovere quest'area di lavoro dalla lista?",
+    "da": "Fjern dette arbejdsområde fra listen?",
+    "pl": "Usunąć ten obszar roboczy z listy?",
+    "ru": "Удалить это рабочее пространство из списка?",
+    "ar": "إزالة مساحة العمل هذه من القائمة؟",
+    "no": "Fjerne dette arbeidsområdet fra listen?",
+    "pt-BR": "Remover esta área de trabalho da lista?",
+    "th": "ลบเวิร์กสเปซนี้ออกจากรายการ?",
+    "tr": "Bu çalışma alanı listeden kaldırılsın mı?",
+    "uk": "Видалити цей робочий простір зі списку?"
+  },
+  "ui.workspaces.backToList": {
+    "zh": "工作区", "en": "Workspaces", "zh-TW": "工作區",
+    "ko": "워크스페이스", "ja": "ワークスペース", "de": "Arbeitsbereiche",
+    "es": "Espacios", "fr": "Espaces", "it": "Aree",
+    "da": "Områder", "pl": "Obszary", "ru": "Пространства",
+    "ar": "المساحات", "no": "Områder", "pt-BR": "Áreas",
+    "th": "เวิร์กสเปซ", "tr": "Alanlar", "uk": "Простори"
+  },
+  "ui.workspaces.justNow": {
+    "zh": "刚刚", "en": "just now", "zh-TW": "剛剛",
+    "ko": "방금", "ja": "たった今", "de": "gerade eben",
+    "es": "justo ahora", "fr": "à l'instant", "it": "proprio ora",
+    "da": "lige nu", "pl": "właśnie", "ru": "только что",
+    "ar": "الآن", "no": "akkurat nå", "pt-BR": "agora mesmo",
+    "th": "เมื่อสักครู่", "tr": "az önce", "uk": "щойно"
+  },
+  "ui.workspaces.browse": {
+    "zh": "浏览目录", "en": "Browse Directory", "zh-TW": "瀏覽目錄",
+    "ko": "디렉토리 탐색", "ja": "ディレクトリを参照", "de": "Verzeichnis durchsuchen",
+    "es": "Explorar directorio", "fr": "Parcourir le répertoire", "it": "Sfoglia directory",
+    "da": "Gennemse mappe", "pl": "Przeglądaj katalog", "ru": "Обзор каталога",
+    "ar": "تصفح المجلد", "no": "Bla gjennom mappe", "pt-BR": "Explorar diretório",
+    "th": "เรียกดูไดเรกทอรี", "tr": "Dizine göz at", "uk": "Переглянути каталог"
+  },
+  "ui.workspaces.selectDir": {
+    "zh": "选择项目目录", "en": "Select Project Directory", "zh-TW": "選擇專案目錄",
+    "ko": "프로젝트 디렉토리 선택", "ja": "プロジェクトディレクトリを選択", "de": "Projektverzeichnis auswählen",
+    "es": "Seleccionar directorio del proyecto", "fr": "Sélectionner le répertoire du projet", "it": "Seleziona directory del progetto",
+    "da": "Vælg projektmappe", "pl": "Wybierz katalog projektu", "ru": "Выбрать каталог проекта",
+    "ar": "اختر مجلد المشروع", "no": "Velg prosjektmappe", "pt-BR": "Selecionar diretório do projeto",
+    "th": "เลือกไดเรกทอรีโปรเจกต์", "tr": "Proje dizinini seçin", "uk": "Вибрати каталог проєкту"
+  },
+  "ui.workspaces.select": {
+    "zh": "选择", "en": "Select", "zh-TW": "選擇",
+    "ko": "선택", "ja": "選択", "de": "Auswählen",
+    "es": "Seleccionar", "fr": "Sélectionner", "it": "Seleziona",
+    "da": "Vælg", "pl": "Wybierz", "ru": "Выбрать",
+    "ar": "اختيار", "no": "Velg", "pt-BR": "Selecionar",
+    "th": "เลือก", "tr": "Seç", "uk": "Вибрати"
+  },
+  "ui.workspaces.selectCurrent": {
+    "zh": "选择当前目录", "en": "Select Current Directory", "zh-TW": "選擇當前目錄",
+    "ko": "현재 디렉토리 선택", "ja": "現在のディレクトリを選択", "de": "Aktuelles Verzeichnis auswählen",
+    "es": "Seleccionar directorio actual", "fr": "Sélectionner le répertoire actuel", "it": "Seleziona directory corrente",
+    "da": "Vælg aktuel mappe", "pl": "Wybierz bieżący katalog", "ru": "Выбрать текущий каталог",
+    "ar": "اختر المجلد الحالي", "no": "Velg gjeldende mappe", "pt-BR": "Selecionar diretório atual",
+    "th": "เลือกไดเรกทอรีปัจจุบัน", "tr": "Mevcut dizini seç", "uk": "Вибрати поточний каталог"
+  },
+  "ui.workspaces.goTo": {
+    "zh": "前往", "en": "Go", "zh-TW": "前往",
+    "ko": "이동", "ja": "移動", "de": "Los",
+    "es": "Ir", "fr": "Aller", "it": "Vai",
+    "da": "Gå", "pl": "Idź", "ru": "Перейти",
+    "ar": "اذهب", "no": "Gå", "pt-BR": "Ir",
+    "th": "ไป", "tr": "Git", "uk": "Перейти"
+  },
+  "ui.workspaces.emptyDir": {
+    "zh": "此目录下没有子目录", "en": "No subdirectories in this directory", "zh-TW": "此目錄下沒有子目錄",
+    "ko": "이 디렉토리에 하위 디렉토리가 없습니다", "ja": "このディレクトリにはサブディレクトリがありません",
+    "de": "Keine Unterverzeichnisse in diesem Verzeichnis", "es": "No hay subdirectorios en este directorio",
+    "fr": "Aucun sous-répertoire dans ce répertoire", "it": "Nessuna sottodirectory in questa directory",
+    "da": "Ingen undermapper i denne mappe", "pl": "Brak podkatalogów w tym katalogu",
+    "ru": "В этом каталоге нет подкаталогов", "ar": "لا توجد أدلة فرعية في هذا المجلد",
+    "no": "Ingen undermapper i denne mappen", "pt-BR": "Nenhum subdiretório neste diretório",
+    "th": "ไม่มีไดเรกทอรีย่อยในไดเรกทอรีนี้", "tr": "Bu dizinde alt dizin yok",
+    "uk": "У цьому каталозі немає підкаталогів"
   }
 };
 
